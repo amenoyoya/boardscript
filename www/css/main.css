@@ -1,0 +1,24 @@
+@font-face {
+    font-family: 'MPlus2';
+    src: url(../font/MPLUS2[wght].ttf);
+}
+
+::-webkit-scrollbar-track {
+    background: #18181b;
+}
+::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+}
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+html {
+    scrollbar-color: #3f3f46 #18181b;
+    scrollbar-width: thin;
+}
+
+body {
+    font-family: 'MPlus2';
+}

@@ -10,6 +10,7 @@
  * @typedef {Object} ContentCache
  * @property {string} main - Main content HTML DOM.
  * @property {string} side - Side content HTML DOM.
+ * @property {Function} script - JavaScript code to be executed after the contents are rendered. 
  */
 
 /**
@@ -22,6 +23,17 @@ window.App = {
    * HTML virtual DOM renderer.
    */
   html: htm.bind(preact.h),
+
+  /**
+   * Reset the target inner HTML and render preact virtual DOM to the target.
+   *
+   * @param {preact.Context} context - Preact virtual DOM to be rendered.
+   * @param {HTMLElement} target - The render target HTML element.
+   */
+  render: (context, target) => {
+    target.innerHTML = '';
+    preact.render(context, target);
+  },
 
   /**
    * Components definition codes.
@@ -114,9 +126,13 @@ window.App = {
         return false;
       }
 
+      const contentDef = App.contents[currentContentName];
       App.location.cache[currentContentName] = {
         main: document.getElementById('main-content').innerHTML,
-        side: document.getElementById('side-content').innerHTML
+        side: document.getElementById('side-content').innerHTML,
+        script: contentDef && typeof contentDef.script === 'function'
+          ? contentDef.script
+          : () => {}
       }
       return true;
     },
@@ -136,6 +152,8 @@ window.App = {
       ['main', 'side'].forEach((target) => {
         document.getElementById(`${target}-content`).innerHTML = cache[target];
       });
+      cache.script();
+
       return true;
     },
 
@@ -155,7 +173,7 @@ window.App = {
         const content = contentDef[target];
         const Content = content || (() => App.html``);
 
-        preact.render(Content(), document.getElementById(`${target}-content`));
+        App.render(Content(), document.getElementById(`${target}-content`));
       });
       if (typeof contentDef.script === 'function') {
         contentDef.script();
@@ -175,6 +193,10 @@ window.App = {
         !App.location.locateFromCache(contentName) &&
         !App.location.locateFromDefinition(contentName)
       ) {
+        iziToast.warning({
+          title: 'location error',
+          message: `コンテンツが存在しません: ${contentName}`
+        });
         return false;
       }
       App.location.history.push(contentName); // Record location history.
@@ -189,6 +211,10 @@ window.App = {
     back: () => {
       App.location.cacheCurrentContent();
       if (App.location.history.length === 0) {
+        iziToast.warning({
+          title: 'location error',
+          message: '履歴が存在しません'
+        });
         return false;
       }
 

@@ -15,6 +15,34 @@
  * @type {Object<string, ContentDefinition>}
  */
 App.contents = {
+  /**
+   * Board game content.
+   */
+  system_board: {
+    main: (_props) => {
+      const board = {
+        width: 50,
+        height: 50
+      };
+      return Array.from(
+        { length: board.height },
+        () => App.html`
+          <div class="flex flex-nowrap">
+            ${Array.from(
+              { length: board.width },
+              () => App.html`
+                <div class="flex-none border border-gray-400 w-24 h-24"></div>
+              `
+            )}
+          </div>
+        `
+      );
+    }
+  },
+
+  /**
+   * Contents editor content.
+   */
   system_editor: {
     main: () => App.html`
       <div id="code-editor" class="min-h-full"></div>
@@ -23,7 +51,7 @@ App.contents = {
       <div class="flex flex-wrap items-end">
         <select
           id="content-selector"
-          class="mr-4 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          class="${tailwind.classes.select()} mr-4"
         >
           <option value="" selected>New Content</option>
           ${
@@ -46,6 +74,7 @@ App.contents = {
       const aceEditor = ace.edit('code-editor', {
         theme: 'ace/theme/monokai',
         mode: 'ace/mode/typescript',
+        value: '',
         tabSize: 2,
         minLines: 2
       });
@@ -60,11 +89,17 @@ App.contents = {
       function saveContentDefinition(contentName) {
         const validContentName = contentName.trim();
         if (validContentName.length === 0) {
-          console.error('コンテンツ名を入力してください');
+          iziToast.error({
+            title: 'validation error',
+            message: 'コンテンツ名を入力してください'
+          });
           return false;
         }
         if (validContentName.match(/^system_/)) {
-          console.error('システムコンテンツは編集できません');
+          iziToast.error({
+            title: 'validation error',
+            message: 'システムコンテンツは編集できません'
+          });
           return false;
         }
 
@@ -79,7 +114,11 @@ App.contents = {
         App.contents[validContentName] = App.deserialize(
           aceEditor.getValue()
         );
-        console.log(validContentName, App.contents[validContentName]);
+
+        iziToast.success({
+          title: 'save content',
+          message: `コンテンツが保存されました: ${validContentName}`
+        });
         App.components.modal.close();
       }
 
@@ -106,13 +145,13 @@ App.contents = {
               );
             }}">
               <div class="mb-6">
-                <label for="contentSaveForm__contentName" class="block mb-2 text-gray-900 dark:text-gray-300">
+                <label for="contentSaveForm__contentName" class="${tailwind.classes.label()}">
                   Content Name
                 </label>
                 <input
                   type="text"
                   id="contentSaveForm__contentName"
-                  class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  class="${tailwind.classes.input()}"
                   placeholder="yourContentName"
                   value="${defaultSaveName}"
                   required
@@ -120,12 +159,12 @@ App.contents = {
               </div>
               <button
                 type="submit"
-                class="mr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                class="${tailwind.classes.button()} mr-4"
               >
                 Save
               </button>
               <button
-                class="mr-4 text-white bg-teal-700 hover:bg-teal-800 focus:ring-4 focus:outline-none focus:ring-teal-300 rounded-lg w-full sm:w-auto px-5 py-2.5 text-center dark:bg-teal-600 dark:hover:bg-teal-700 dark:focus:ring-teal-800"
+                class="${tailwind.classes.button('violet')} mr-4"
                 onclick="${(e) => {
                   e.preventDefault();
                   App.components.modal.close();
@@ -147,26 +186,5 @@ App.contents = {
           );
         });
     }
-  },
-  system_board: {
-    main: (_props) => {
-      const board = {
-        width: 50,
-        height: 50
-      };
-      return Array.from(
-        { length: board.height },
-        () => App.html`
-          <div class="flex flex-nowrap">
-            ${Array.from(
-              { length: board.width },
-              () => App.html`
-                <div class="flex-none border border-gray-400 w-24 h-24"></div>
-              `
-            )}
-          </div>
-        `
-      );
-    }
-  } 
+  }
 };

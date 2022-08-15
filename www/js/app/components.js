@@ -22,32 +22,18 @@ App.components = {
    */
   Menu: (props) => App.html`
     <aside
-      class="fixed z-10 landscape:w-1/3 landscape:h-full landscape:right-0 landscape:top-0 portrait:w-full portrait:h-1/3 portrait:left-0 portrait:bottom-0 overflow-auto p-5 bg-slate-800"
+      class="fixed z-10 p-5 bg-slate-800 overflow-auto
+        landscape:w-1/3 landscape:h-full landscape:right-0 landscape:top-0 portrait:w-full portrait:h-1/3 portrait:left-0 portrait:bottom-0"
     >
-      <h1 class="text-gray-100 text-4xl">Component Editor</h1>
-      <button
-        class="px-6
-          py-2.5
-          bg-blue-600
-          text-white
-          font-medium
-          text-xs
-          leading-tight
-          uppercase
-          rounded
-          shadow-md
-          hover:bg-blue-700 hover:shadow-lg
-          focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0
-          active:bg-blue-800 active:shadow-lg
-          transition
-          duration-150
-          ease-in-out"
-        onclick="${() => App.components.modal.open(() => App.html`
-          <p>Sample Modal</p>
-        `)}"
-      >
-        Launch demo modal
-      </button>
+      <div class="flex flex-wrap">
+        <button class="mr-4 text-3xl" onclick="${() => App.location.locate('system_board')}">
+          <i class="game-icon game-icon-empty-chessboard"></i>
+        </button>
+        <button class="mr-4 text-3xl" onclick="${() => App.location.locate('system_editor')}">
+          <i class="game-icon game-icon-notebook"></i>
+        </button>
+      </div>
+      <hr class="my-4 border-gray-200" />
       ${props.children}
     </aside>
   `,
@@ -70,7 +56,7 @@ App.components = {
       }
 
       const ContentComponent = Content || (() => App.html``);
-      preact.render(ContentComponent(), document.getElementById('modal-content'));
+      App.render(ContentComponent(), document.getElementById('modal-content'));
 
       ['invisible', 'opacity-0'].forEach(
         (cls) => modalArea.classList.remove(cls)
@@ -103,10 +89,10 @@ App.components = {
     Component: () => App.html`
       <section
         id="modal-area"
-        class="invisible opacity-0 fixed z-30 top-0 left-0 w-full h-full ease-in duration-300"
+        class="invisible opacity-0 fixed z-30 top-0 left-0 w-full h-full ease-in duration-200"
       >
         <div class="w-full h-full bg-gray-900 opacity-80" onclick="${App.components.modal.close}"></div>
-        <div class="absolute top-1/2 left-1/2 w-4/5 p-8 bg-slate-600 translate-x-[-50%] translate-y-[-50%] overflow-x-auto overflow-y-auto">
+        <div class="absolute top-1/2 left-1/2 w-4/5 p-8 bg-slate-600 translate-x-[-50%] translate-y-[-50%] overflow-auto">
           <div id="modal-content" class="w-full h-full"></div>
           <div
             class="absolute top-2 right-3 cursor-pointer"
@@ -130,7 +116,6 @@ App.components = {
         <div id="main-content" class="w-full h-full"></div>
       </ ${App.components.Main}>
       <${App.components.Menu}>
-        <hr class="my-4 border-gray-200" />
         <div id="side-content" class="w-full h-full"></div>
       </ ${App.components.Menu}>
     </div>

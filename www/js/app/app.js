@@ -6,12 +6,6 @@
  * @property {Function} [side] - Side content definition.
  * @property {Function} [script] - JavaScript code to be executed after the contents are rendered. 
  */
-/**
- * @typedef {Object} ContentCache
- * @property {string} main - Main content HTML DOM.
- * @property {string} side - Side content HTML DOM.
- * @property {Function} script - JavaScript code to be executed after the contents are rendered. 
- */
 
 /**
  * Application variables.
@@ -99,16 +93,6 @@ window.App = {
    */
   location: {
     /**
-     * Cache of located contents.
-     *
-     * - Key: Content name.
-     * - Value: HTML DOMs of the main + side content.
-     *
-     * @type {Object<string, ContentCache>}
-     */
-    cache: {},
-
-    /**
      * Located content history.
      *
      * @type {Array<string>}
@@ -116,54 +100,12 @@ window.App = {
     history: [],
 
     /**
-     * Save the current content to the cache.
-     *
-     * @returns {boolean} It returns false if the current content does not exist.
-     */
-    cacheCurrentContent: () => {
-      const currentContentName = App.location.history.slice(-1)[0];
-      if (!currentContentName) {
-        return false;
-      }
-
-      const contentDef = App.contents[currentContentName];
-      App.location.cache[currentContentName] = {
-        main: document.getElementById('main-content').innerHTML,
-        side: document.getElementById('side-content').innerHTML,
-        script: contentDef && typeof contentDef.script === 'function'
-          ? contentDef.script
-          : () => {}
-      }
-      return true;
-    },
-
-    /**
-     * Locate the main + side content from the cache.
-     *
-     * @param {string} contentName - Content name. This is same as the App.location.cache.* property name.
-     * @returns {boolean} It returns false if the cache content does not exist.
-     */
-    locateFromCache: (contentName) => {
-      const cache = App.location.cache[contentName];
-      if (!cache) {
-        return false;
-      }
-
-      ['main', 'side'].forEach((target) => {
-        document.getElementById(`${target}-content`).innerHTML = cache[target];
-      });
-      cache.script();
-
-      return true;
-    },
-
-    /**
-     * Locate the main + side content from the contents definition.
+     * Locate the main + side content without recording history.
      *
      * @param {string} contentName - Content name. This is same as the App.contents.* property name.
      * @returns {boolean} It returns false if the cache content does not exist.
      */
-    locateFromDefinition: (contentName) => {
+    render: (contentName) => {
       const contentDef = App.contents[contentName];
       if (!contentDef) {
         return false;
@@ -183,16 +125,18 @@ window.App = {
 
     /**
      * Locate the main + side content and record the location history.
+     * If the current location is same as the target location, do not locate.
      *
      * @param {string} contentName - Content name. This is same as the App.contents.* property name.
      * @returns {boolean} It returns false if the content is not defined in the App.contents.
      */
     locate: (contentName) => {
-      App.location.cacheCurrentContent();
-      if (
-        !App.location.locateFromCache(contentName) &&
-        !App.location.locateFromDefinition(contentName)
-      ) {
+      const currentContentName = App.location.history.slice(-1)[0];
+      if (currentContentName === contentName) {
+        return false;
+      }
+
+      if (!App.location.render(contentName)) {
         iziToast.warning({
           title: 'location error',
           message: `コンテンツが存在しません: ${contentName}`
@@ -209,7 +153,6 @@ window.App = {
      * @returns {boolean} It returns false if the previous location does not exist.
      */
     back: () => {
-      App.location.cacheCurrentContent();
       if (App.location.history.length === 0) {
         iziToast.warning({
           title: 'location error',
@@ -219,9 +162,7 @@ window.App = {
       }
 
       const contentName = App.location.history.pop();
-
-      return App.location.locateFromCache(contentName) || 
-        App.location.locateFromDefinition(contentName);
+      return App.location.render(contentName);
     }
   }
 };

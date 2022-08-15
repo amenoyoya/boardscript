@@ -26,6 +26,12 @@ App.components = {
         landscape:w-1/3 landscape:h-full landscape:right-0 landscape:top-0 portrait:w-full portrait:h-1/3 portrait:left-0 portrait:bottom-0"
     >
       <div class="flex flex-wrap">
+        <button
+          class="mr-4 text-3xl ${App.location.history.length === 0 ? 'hidden': ''}"
+          onclick="${App.location.back}"
+        >
+          <i class="game-icon game-icon-return-arrow"></i>
+        </button>
         <button class="mr-4 text-3xl" onclick="${() => App.location.locate('system_board')}">
           <i class="game-icon game-icon-empty-chessboard"></i>
         </button>

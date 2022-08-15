@@ -145,6 +145,14 @@ App.location = {
 };
 
 (() => {
+  eruda.init({
+    autoScale: true,
+    defaults: {
+      transparency: 0.9,
+      theme: 'Dark'
+    }
+  });
+
   preact.render(App.html`<${App.location.Main} />`, document.body);
   App.location.locate('system_board');
 })();

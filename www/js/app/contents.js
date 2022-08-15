@@ -46,98 +46,94 @@ App.contents = {
   system_editor: {
     main: () => App.html`
       <div id="code-editor" class="min-h-full"></div>
-    `,
-    side: () => App.html`
-      <div class="flex flex-wrap items-end">
-        <select
-          id="content-selector"
-          class="${tailwind.classes.select()} mr-4"
-        >
-          <option value="" selected>New Content</option>
-          ${
-            Object.keys(App.contents).map((contentName) => App.html`
-              <option value="${contentName}">${contentName}</option>
-            `)
-          }
-        </select>
-        <button id="save-content-btn" class="mr-4 text-3xl">
-          <i class="game-icon game-icon-save" />
-        </button>
-        <button id="locate-content-btn" class="mr-4 text-3xl">
-          <i class="game-icon game-icon-linked-rings" />
-        </button>
-      </div>
-    `,
-    script: () => {
-      ace.config.set('basePath', './js/ace-1.9.5/');
 
-      const aceEditor = ace.edit('code-editor', {
-        theme: 'ace/theme/monokai',
-        mode: 'ace/mode/typescript',
-        value: '',
-        tabSize: 2,
-        minLines: 2
-      });
+      <script>
+        ace.config.set('basePath', './js/ace-1.9.5/');
 
-      /**
-       * Save the content definition code.
-       * System content (content name: `system_*`) cannot be saved.
-       *
-       * @param {string} contentName - Content name to be saved.
-       * @returns {boolean} It returns false if the content name is invalid.
-       */
-      function saveContentDefinition(contentName) {
-        const validContentName = contentName.trim();
-        if (validContentName.length === 0) {
-          iziToast.error({
-            title: 'validation error',
-            message: 'コンテンツ名を入力してください'
-          });
-          return false;
-        }
-        if (validContentName.match(/^system_/)) {
-          iziToast.error({
-            title: 'validation error',
-            message: 'システムコンテンツは編集できません'
-          });
-          return false;
-        }
-
-        if (!App.contents[validContentName]) {
-          // Create new content to the list.
-          const option = document.createElement('option');
-
-          option.value = validContentName;
-          option.innerText = validContentName;
-          document.getElementById('content-selector').appendChild(option);
-        }
-        App.contents[validContentName] = App.deserialize(
-          aceEditor.getValue()
-        );
-
-        iziToast.success({
-          title: 'save content',
-          message: `コンテンツが保存されました: ${validContentName}`
+        ace.currentEditor = ace.edit('code-editor', {
+          theme: 'ace/theme/monokai',
+          mode: 'ace/mode/typescript',
+          value: '',
+          tabSize: 2,
+          minLines: 2
         });
-        App.components.modal.close();
+      </script>
+    `,
+    side: class extends preact.Component {
+      state = {
+        contents: []
       }
 
-      document.getElementById('content-selector')
-        .addEventListener('change', (e) => {
+      constructor(props) {
+        super(props);
+        this.state.contents = Object.keys(App.contents);
+      }
+
+      render() {
+        /**
+         * Save the content definition code.
+         * System content (content name: `system_*`) cannot be saved.
+         *
+         * @param {string} contentName - Content name to be saved.
+         * @returns {boolean} It returns false if the content name is invalid.
+         */
+        const saveContentDefinition = (contentName) => {
+          const validContentName = contentName.trim();
+          if (validContentName.length === 0) {
+            iziToast.error({
+              message: 'コンテンツ名を入力してください'
+            });
+            return false;
+          }
+          if (validContentName.match(/^system_/)) {
+            iziToast.error({
+              message: 'システムコンテンツは編集できません'
+            });
+            return false;
+          }
+
+          // Update contents list.
+          App.contents[validContentName] = App.deserialize(
+            ace.currentEditor.getValue()
+          );
+          this.setState((state) => {
+            return {
+              ...state,
+              contents: Object.keys(App.contents)
+            }
+          });
+
+          // Show toast message and close the modal.
+          iziToast.success({
+            message: `コンテンツが保存されました: ${validContentName}`
+          });
+          App.components.modal.close();
+        };
+
+        /**
+         * Update the editor content.
+         *
+         * @param {Event} e - Change event object.
+         */
+        const updateEditorContent = (e) => {
           const contentDef = App.contents[e.target.value];
 
-          aceEditor.setValue(
+          ace.currentEditor.setValue(
             contentDef
               ? App.serialize(contentDef)
               : ''
           );
-        });
+        };
 
-      document.getElementById('save-content-btn')
-        .addEventListener('click', () => {
-          const defaultSaveName =
-            document.getElementById('content-selector').value;
-          App.components.modal.open(() => App.html`
+        /**
+         * Save content form.
+         *
+         * @param {Object} props - Component properties.
+         * @param {string} props.defaultSaveName - Default content name to be saved.
+         * @returns {preact.Context} It returns a save content form context.
+         */
+        const SaveContentForm = (props) => {
+          return App.html`
             <form onsubmit="${(e) => {
               e.preventDefault();
               saveContentDefinition(
@@ -153,7 +149,7 @@ App.contents = {
                   id="contentSaveForm__contentName"
                   class="${tailwind.classes.input()}"
                   placeholder="yourContentName"
-                  value="${defaultSaveName}"
+                  value="${props.defaultSaveName || ''}"
                   required
                 />
               </div>
@@ -173,18 +169,56 @@ App.contents = {
                 Cancel
               </button>
             </form>
-          `);
+          `;
+        };
+
+        /**
+         * Save content button click event.
+         */
+        const onSaveContentButtonClick = () => {
+          const defaultSaveName =
+            document.getElementById('content-selector').value;
+          App.components.modal.open(
+            () => App.html`<${SaveContentForm} defaultSaveName="${defaultSaveName}" />`
+          );
           setTimeout(() => {
             document.getElementById('contentSaveForm__contentName').focus();
           }, 100);
-        });
+        };
 
-      document.getElementById('locate-content-btn')
-        .addEventListener('click', () => {
-          App.location.locate(
-            document.getElementById('content-selector').value
-          );
-        });
+        return App.html`
+          <div class="flex flex-wrap items-end">
+            <select
+              id="content-selector"
+              class="${tailwind.classes.select()} mr-4"
+              onchange="${updateEditorContent}"
+            >
+              <option value="" selected>New Content</option>
+              ${
+                this.state.contents.map((contentName) => App.html`
+                  <option value="${contentName}">${contentName}</option>
+                `)
+              }
+            </select>
+
+            <button
+              class="mr-4 text-3xl"
+              onclick="${onSaveContentButtonClick}"
+            >
+              <i class="game-icon game-icon-save" />
+            </button>
+
+            <button
+              class="mr-4 text-3xl"
+              onclick="${() => App.location.locate(
+                document.getElementById('content-selector').value
+              )}"
+            >
+              <i class="game-icon game-icon-linked-rings" />
+            </button>
+          </div>
+        `;
+      }
     }
   }
 };

@@ -16,27 +16,72 @@
  */
 App.contents = {
   /**
-   * Board game content.
+   * Drawing board content.
    */
   system_board: {
-    main: (_props) => {
-      const board = {
-        width: 50,
-        height: 50
-      };
-      return Array.from(
-        { length: board.height },
-        () => App.html`
-          <div class="flex flex-nowrap">
-            ${Array.from(
-              { length: board.width },
-              () => App.html`
-                <div class="flex-none border border-gray-400 w-24 h-24"></div>
-              `
-            )}
-          </div>
-        `
-      );
+    main: () => App.html`
+      <div class="w-full h-full p-4">
+        <div class="w-full h-full" id="fabric-canvas-area">
+          <canvas id="fabric-canvas"></canvas>
+        </div>
+      </div>
+
+      <script>
+        (() => {
+          fabric.currentCanvas = new fabric.Canvas('fabric-canvas', {
+            backgroundColor: '#334155'
+          });
+
+          function resizeFabricCanvas() {
+            fabric.currentCanvas.setWidth(
+              document.getElementById('fabric-canvas-area').clientWidth
+            );
+            fabric.currentCanvas.setHeight(
+              document.getElementById('fabric-canvas-area').clientHeight
+            );
+          }
+
+          window.addEventListener('DOMContentLoaded', resizeFabricCanvas);
+          window.addEventListener('resize', () => resizeFabricCanvas);
+        })();
+      </script>
+    `,
+    side: () => {
+      /**
+       * Execute a script for Fabric canvas.
+       * Script should be coded in Ace editor: (canvas: fabric.Canvas) => void
+       */
+      function execScript() {
+        const script = ace.currentEditor.getValue();
+        const functionGenerator = Function(`'use strict'; return (canvas) => {${script}}`);
+        const fabricFunction = functionGenerator();
+
+        fabricFunction(fabric.currentCanvas);
+      }
+
+      return App.html`
+        <div class="flex mb-4">
+          <button
+            class="${tailwind.classes.button()} pb-0 w-auto"
+            onclick="${execScript}"
+          >
+            <i class="game-icon game-icon-play-button"></i>
+          </button>
+        </div>
+        <div id="fabric-editor" class="h-2/3"></div>
+
+        <script>
+          ace.config.set('basePath', './js/ace-1.9.5/');
+
+          ace.currentEditor = ace.edit('fabric-editor', {
+            theme: 'ace/theme/monokai',
+            mode: 'ace/mode/typescript',
+            value: '',
+            tabSize: 2,
+            minLines: 2
+          });
+        </script>
+      `;
     }
   },
 

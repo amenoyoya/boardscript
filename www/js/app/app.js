@@ -1,37 +1,23 @@
 'use strict';
 
 /**
- * @typedef {Object} ContentDefinition
- * @property {preact.Component} [main] - Main content definition.
- * @property {preact.Component} [side] - Side content definition.
- */
-
-/**
  * Application variables.
  *
- * @type {Object<string, *>}
+ * @typedef {Object} Application
+ * @property {(string) => HResult|Array<HResult>} html - HTML virtual DOM renderer.
+ * @property {(*, number) => string} serialize - Function for serializing an object to a string.
+ * @property {(string) => Object} deserialize - Function for deserialize a string to an object.
+ * @property {(string, preact.Component, preact.Component) => void} installContent - Function for installing a content.
+ * @property {(string) => void} uninstallContent - Function for uninstalling a content.
+ * @property {() => void} show - Function for showing the main content in the document.body.
+ *
+ * @type {Application}
  */
 window.App = {
   /**
    * HTML virtual DOM renderer.
    */
   html: htm.bind(preact.h),
-
-  /**
-   * Components definition codes.
-   *
-   * @type {Object<string, *>}
-   */
-  components: {},
-
-  /**
-   * Contents definition codes.
-   * System embedded contents should be named as `system_***`.
-   * System embedded contents are unable to edit (save).
-   *
-   * @type {Object<string, ContentDefinition>}
-   */
-  contents: {},
 
   /**
    * Serialize an object to a string.
@@ -74,5 +60,115 @@ window.App = {
     const generator = Function(`'use strict'; return ${serialized}`);
 
     return generator();
+  },
+
+  /**
+   * Install a content. (New tab content)
+   * This function will be activated after App.show() function is called.
+   *
+   * @param {string} id - Content ID.
+   * @param {preact.Compoennt} title - Content title displaying in the tab.
+   * @param {preact.Compoennt} content - Component object of the content. 
+   */
+  installContent: (id, name, content) => ({
+    id, name, content
+  }),
+
+  /**
+   * Uninstall a content. (Delete tab content)
+   * This function will be activated after App.show() function is called.
+   *
+   * @param {string} id - Content ID to be uninstalled.
+   */
+  uninstallContent: (id) => ({
+    id
+  }),
+
+  /**
+   * Show the main content in the document.body.
+   */
+  show: () => {
+    class Main extends preact.Component {
+      state = {
+        contents: [],
+        activeTab: 0
+      }
+
+      render() {
+        /**
+         * Install content API.
+         */
+        App.installContent = (id, title, content) => {
+          this.setState((state) => ({
+            ...state,
+            contents: [
+              ...state.contents,
+              {
+                id,
+                title,
+                content
+              }
+            ]
+          }));
+        };
+
+        /**
+         * Uninstall content API.
+         */
+         App.uninstallContent = (id) => {
+          this.setState((state) => ({
+            ...state,
+            contents: state.contents.filter(
+              (content) => content.id !== id
+            ),
+            activeTab: 0 // Reset active tab to 0.
+          }));
+        };
+
+        if (this.state.contents.length === 0) {
+          return App.html`<main></main>`;
+        }
+        return App.html`
+          <nav class="mb-4 border-b border-gray-200 dark:border-gray-700">
+            <ul class="flex flex-nowrap w-full overflow-x-auto -mb-px text-sm font-medium text-center" id="nav-tab" data-tabs-toggle="#tab-content" role="tablist">
+              ${
+                this.state.contents.map((content, index) => App.html`
+                  <li class="${index < this.state.contents.length - 1 ? 'mr-2': ''}" role="presentation">
+                    <button
+                      class="inline-block p-4 rounded-t-lg border-b-2 ${index === this.state.activeTab ? '': 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300'}"
+                      id="${content.id}-tab"
+                      data-tabs-target="#${content.id}"
+                      type="button"
+                      role="tab"
+                      aria-controls="${content.id}"
+                      aria-selected="${index === this.state.activeTab ? 'true': 'false'}"
+                      onclick="${() => {
+                        if (index !== this.state.activeTab) {
+                          this.setState((state) => ({
+                            ...state,
+                            avtiveTab: index
+                          }));
+                        }
+                      }}"
+                    ><${content.title} /></button>
+                  </li>
+                `)
+              }
+            </ul>
+          </nav>
+          <main id="tab-content">
+            ${
+              this.state.contents.map((content, index) => App.html`
+                <div class="${index === this.state.activeTab ? '' : 'hidden'}" id="${content.id}" role="tabpanel" aria-labelledby="${content.id}-tab">
+                  <${content.content} />
+                </div>
+              `)
+            }
+          </main>
+        `;
+      }
+    }
+
+    preact.render(App.html`<${Main} />`, document.body);
   }
 };

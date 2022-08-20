@@ -146,7 +146,7 @@ window.App = {
                         if (index !== this.state.activeTab) {
                           this.setState((state) => ({
                             ...state,
-                            avtiveTab: index
+                            activeTab: index
                           }));
                         }
                       }}"
